@@ -58,7 +58,7 @@ export default function ArtworkApprovalsPage() {
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none"></div>
 
                     {isBuildingMockup ? (
-                        <div className="absolute inset-0 z-20 bg-[var(--background)] flex flex-col p-8">
+                        <div className="absolute inset-0 z-20 bg-[var(--background)] flex flex-col">
                             <MockupBuilder
                                 onSave={() => setIsBuildingMockup(false)}
                                 onCancel={() => setIsBuildingMockup(false)}
