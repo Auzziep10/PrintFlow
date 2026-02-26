@@ -21,6 +21,7 @@ interface ArtworkInstance {
 export default function GangsheetBuilderApp() {
     const [artworks, setArtworks] = useState<ArtworkInstance[]>([]);
     const [canvasHeightInches, setCanvasHeightInches] = useState(24); // Starting with 2ft min
+    const [autoGapInches, setAutoGapInches] = useState(0.5); // Default half inch gap
     const canvasRef = useRef<HTMLDivElement>(null);
 
     // Dynamic Canvas Height Based on the longest placed item.
@@ -87,25 +88,43 @@ export default function GangsheetBuilderApp() {
     };
 
     const duplicateArtwork = (art: ArtworkInstance) => {
+        const gapPx = autoGapInches * CANVAS_PIXELS_PER_INCH;
+        let nextX = art.x + art.width + gapPx;
+        let nextY = art.y;
+
+        if (nextX + art.width > CANVAS_WIDTH_PX) {
+            nextX = 20;
+            nextY += art.height + gapPx;
+        }
+
         setArtworks(prev => [...prev, {
             ...art,
             id: uuidv4(),
-            x: art.x + 20, // Offset it slightly so they can tell it duplicated
-            y: art.y + 20
+            x: nextX,
+            y: nextY
         }]);
     };
 
     const duplicateArtworkMultiple = (artToDuplicate: ArtworkInstance, count: number) => {
         if (count <= 0) return;
+        const gapPx = autoGapInches * CANVAS_PIXELS_PER_INCH;
         const newArtworks: ArtworkInstance[] = [];
+
+        let currentX = artToDuplicate.x + artToDuplicate.width + gapPx;
+        let currentY = artToDuplicate.y;
+
         for (let i = 0; i < count; i++) {
+            if (currentX + artToDuplicate.width > CANVAS_WIDTH_PX) {
+                currentX = 20;
+                currentY += artToDuplicate.height + gapPx;
+            }
             newArtworks.push({
                 ...artToDuplicate,
                 id: uuidv4(),
-                // shift them slightly right and down each time to avoid burying them perfectly, but wrap them around if going off canvas
-                x: Math.min((artToDuplicate.x + ((i + 1) * 20)) % (CANVAS_WIDTH_PX - artToDuplicate.width), CANVAS_WIDTH_PX - artToDuplicate.width),
-                y: artToDuplicate.y + ((i + 1) * 20)
+                x: currentX,
+                y: currentY
             });
+            currentX += artToDuplicate.width + gapPx;
         }
         setArtworks(prev => [...prev, ...newArtworks]);
     };
@@ -193,8 +212,8 @@ export default function GangsheetBuilderApp() {
                                 {(art.width / CANVAS_PIXELS_PER_INCH).toFixed(1)}" x {(art.height / CANVAS_PIXELS_PER_INCH).toFixed(1)}"
                             </div>
 
-                            <div className="drag-handle w-full h-full p-2 bg-blue-500/10 group-hover:bg-transparent transition-colors">
-                                <img src={art.url} alt="Placing Art" className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)]" draggable={false} />
+                            <div className="drag-handle w-full h-full bg-blue-500/10 group-hover:bg-transparent transition-colors">
+                                <img src={art.url} alt="Placing Art" className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] pointer-events-none" draggable={false} />
                             </div>
                         </Rnd>
                     ))}
@@ -217,6 +236,21 @@ export default function GangsheetBuilderApp() {
                         <span className="text-sm font-bold text-black/70 dark:text-white/70 text-center">Upload Artwork<br /><span className="text-xs font-medium text-black/40">PNG, SVG (Min 300dpi)</span></span>
                         <input type="file" className="hidden" accept="image/png, image/svg+xml" onChange={handleImageUpload} />
                     </label>
+                </div>
+
+                <div className="glass-panel p-4 rounded-2xl mb-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-black/50 dark:text-white/50">Auto-Gap Margin</span>
+                        <span className="text-sm font-bold text-blue-500">{autoGapInches.toFixed(1)}"</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0" max="2" step="0.1"
+                        value={autoGapInches}
+                        onChange={(e) => setAutoGapInches(parseFloat(e.target.value))}
+                        className="w-full accent-blue-500"
+                    />
+                    <p className="text-[10px] text-black/40 dark:text-white/40 mt-1">Free spacing applied between copies when duplicating.</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto hidden-scrollbar pr-2 mb-6 space-y-3">
