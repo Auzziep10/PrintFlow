@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 
-export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void, onCancel: () => void }) {
+export default function MockupBuilder({ onSave, onCancel }: { onSave: (url: string) => void, onCancel: () => void }) {
     const [garmentImage, setGarmentImage] = useState<string | null>(null);
     const [logoImage, setLogoImage] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Position and scale of the logo
     const [logoState, setLogoState] = useState({ x: 150, y: 150, width: 150, rotate: 0 });
@@ -75,6 +77,39 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
         };
     }, [isDragging, isResizing, isRotating]);
 
+    const handleMockupSave = async () => {
+        if (!containerRef.current) return;
+        setIsSaving(true);
+
+        try {
+            // First we drop any active selections to prevent the blue box from being captured.
+            setIsDragging(false);
+            setIsResizing(false);
+            setIsRotating(false);
+
+            // Wait a brief moment for React bounds states to clear out DOM elements
+            await new Promise(res => setTimeout(res, 50));
+
+            const canvas = await html2canvas(containerRef.current, {
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null,
+                scale: 2 // Output higher resolution image
+            });
+
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const flatImageURL = URL.createObjectURL(blob);
+                    onSave(flatImageURL);
+                }
+                setIsSaving(false);
+            }, 'image/png');
+        } catch (error) {
+            console.error("Failed to flatten canvas mockup", error);
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-black rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
             {/* Toolbar */}
@@ -88,11 +123,18 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                         Cancel
                     </button>
                     <button
-                        onClick={onSave}
-                        disabled={!garmentImage || !logoImage}
+                        onClick={handleMockupSave}
+                        disabled={!garmentImage || !logoImage || isSaving}
                         className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
                     >
-                        Save Mockup
+                        {isSaving ? (
+                            <>
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Rendering...
+                            </>
+                        ) : (
+                            'Save Mockup'
+                        )}
                     </button>
                 </div>
             </div>

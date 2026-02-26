@@ -13,6 +13,7 @@ const ARTWORK_ORDERS = [
 export default function ArtworkApprovalsPage() {
     const [activeOrder, setActiveOrder] = useState(ARTWORK_ORDERS[0].id);
     const [isBuildingMockup, setIsBuildingMockup] = useState(false);
+    const [savedMockups, setSavedMockups] = useState<string[]>([]);
 
     return (
         <div className="p-8 h-full mx-auto max-w-[1700px] flex flex-col gap-6">
@@ -60,7 +61,10 @@ export default function ArtworkApprovalsPage() {
                     {isBuildingMockup ? (
                         <div className="absolute inset-0 z-20 bg-[var(--background)] flex flex-col">
                             <MockupBuilder
-                                onSave={() => setIsBuildingMockup(false)}
+                                onSave={(url) => {
+                                    setSavedMockups(prev => [url, ...prev]);
+                                    setIsBuildingMockup(false);
+                                }}
                                 onCancel={() => setIsBuildingMockup(false)}
                             />
                         </div>
@@ -79,6 +83,30 @@ export default function ArtworkApprovalsPage() {
 
                             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-6">
+
+                                    {/* Local Saved Mockups Array */}
+                                    {savedMockups.map((mockupUrl, idx) => (
+                                        <div key={idx} className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-[2rem] overflow-hidden group">
+                                            <div className="h-64 relative overflow-hidden bg-black/10 dark:bg-white/10 flex items-center justify-center p-4">
+                                                <img src={mockupUrl} className="w-full h-full object-contain drop-shadow-lg" alt="Generated Local Mockup" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
+                                                    <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-transform shadow-lg">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                    </button>
+                                                    <button onClick={() => setSavedMockups(prev => prev.filter(p => p !== mockupUrl))} className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 flex justify-between items-center bg-white/40 dark:bg-black/40 backdrop-blur-md">
+                                                <div>
+                                                    <h3 className="font-bold text-sm mb-0.5">Custom Local Generator</h3>
+                                                    <p className="text-xs font-semibold text-black/50 dark:text-white/50">Locally Rendered (Unsaved) &bull; v1.0</p>
+                                                </div>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 px-2 py-1 rounded-lg">Awaiting Client</span>
+                                            </div>
+                                        </div>
+                                    ))}
 
                                     {/* Existing Uploaded Mockup */}
                                     <div className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-[2rem] overflow-hidden group">
