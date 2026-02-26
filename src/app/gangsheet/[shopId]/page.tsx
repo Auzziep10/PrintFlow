@@ -31,11 +31,19 @@ export default function GangsheetBuilderApp() {
             if (bottom > maxBottom) maxBottom = bottom;
         });
 
-        // Convert bottom px back to inches. If they hit the bottom edge, extend canvas by 12 inches
-        const newMaxInches = Math.max(24, Math.ceil(maxBottom / CANVAS_PIXELS_PER_INCH));
-        if (newMaxInches > canvasHeightInches - 5) { // Leave a buffer
-            setCanvasHeightInches(newMaxInches + 12);
-        }
+        const maxBottomInches = Math.ceil(maxBottom / CANVAS_PIXELS_PER_INCH);
+
+        setCanvasHeightInches(prevHeight => {
+            // Expand down if they get close to the edge
+            if (maxBottomInches > prevHeight - 5) {
+                return Math.max(24, maxBottomInches + 12);
+            }
+            // Shrink back up if they delete things (don't shrink smaller than 24)
+            if (maxBottomInches < prevHeight - 17 && prevHeight > 24) {
+                return Math.max(24, maxBottomInches + 12);
+            }
+            return prevHeight;
+        });
     }, [artworks]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
