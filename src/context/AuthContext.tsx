@@ -25,7 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(authUser);
             setLoading(false);
 
-            if (!authUser && pathname !== '/login') {
+            // Allow unauthenticated access if they are on the Customer Portal
+            const isPortal = pathname?.startsWith('/portal');
+
+            if (!authUser && pathname !== '/login' && !isPortal) {
                 router.push('/login');
             } else if (authUser && pathname === '/login') {
                 router.push('/');
