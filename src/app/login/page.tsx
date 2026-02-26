@@ -34,7 +34,7 @@ export default function Login() {
     }, []);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4 relative overflow-hidden">
+        <div className="min-h-screen w-full flex items-center justify-center bg-[var(--background)] p-4 relative overflow-hidden">
             {/* Decorative Blur */}
             <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/20 dark:bg-blue-600/20 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 dark:bg-purple-600/20 blur-[120px] pointer-events-none" />
