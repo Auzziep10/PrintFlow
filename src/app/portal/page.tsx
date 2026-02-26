@@ -50,7 +50,7 @@ export default function CustomerPortalPage() {
             <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/10 dark:bg-purple-600/10 blur-[120px] pointer-events-none" />
 
-            <div className="w-full max-w-5xl z-10 flex flex-col gap-8">
+            <div className="w-full max-w-7xl z-10 flex flex-col gap-8">
 
                 {/* Portal Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between glass-panel p-6 rounded-[2rem] gap-4">
@@ -94,8 +94,8 @@ export default function CustomerPortalPage() {
                                     <button
                                         onClick={() => toggleApproval(art.id)}
                                         className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 ${art.approved
-                                                ? 'bg-green-500 text-white hover:bg-green-600'
-                                                : 'bg-black/10 dark:bg-white/10 text-black/80 dark:text-white/80 hover:bg-black/20 dark:hover:bg-white/20'
+                                            ? 'bg-green-500 text-white hover:bg-green-600'
+                                            : 'bg-black/10 dark:bg-white/10 text-black/80 dark:text-white/80 hover:bg-black/20 dark:hover:bg-white/20'
                                             }`}
                                     >
                                         {art.approved ? (
