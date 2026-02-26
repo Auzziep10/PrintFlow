@@ -87,6 +87,48 @@ export default function GangsheetBuilderApp() {
         }]);
     };
 
+    const duplicateArtworkMultiple = (artToDuplicate: ArtworkInstance, count: number) => {
+        if (count <= 0) return;
+        const newArtworks: ArtworkInstance[] = [];
+        for (let i = 0; i < count; i++) {
+            newArtworks.push({
+                ...artToDuplicate,
+                id: uuidv4(),
+                // shift them slightly right and down each time to avoid burying them perfectly, but wrap them around if going off canvas
+                x: Math.min((artToDuplicate.x + ((i + 1) * 20)) % (CANVAS_WIDTH_PX - artToDuplicate.width), CANVAS_WIDTH_PX - artToDuplicate.width),
+                y: artToDuplicate.y + ((i + 1) * 20)
+            });
+        }
+        setArtworks(prev => [...prev, ...newArtworks]);
+    };
+
+    const handleExactResize = (id: string, newInches: number, dimension: 'width' | 'height') => {
+        if (newInches <= 0 || isNaN(newInches)) return;
+
+        setArtworks(prev => prev.map(art => {
+            if (art.id !== id) return art;
+
+            const currentRatio = art.width / art.height;
+            let newWidthPx, newHeightPx;
+
+            if (dimension === 'width') {
+                newWidthPx = newInches * CANVAS_PIXELS_PER_INCH;
+                newHeightPx = newWidthPx / currentRatio;
+            } else {
+                newHeightPx = newInches * CANVAS_PIXELS_PER_INCH;
+                newWidthPx = newHeightPx * currentRatio;
+            }
+
+            return {
+                ...art,
+                width: newWidthPx,
+                height: newHeightPx,
+                // Clamp position to not overflow right side when expanding
+                x: Math.min(art.x, CANVAS_WIDTH_PX - newWidthPx)
+            };
+        }));
+    };
+
     return (
         <div className="h-screen w-full bg-[var(--background)] flex overflow-hidden font-sans">
 
@@ -175,17 +217,53 @@ export default function GangsheetBuilderApp() {
                         <p className="text-sm text-black/50 dark:text-white/50 text-center py-4 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5">No layers yet.<br />Upload art to start building.</p>
                     ) : (
                         artworks.map((art, index) => (
-                            <div key={art.id} className="flex items-center gap-3 p-2 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl hover:bg-black/10 transition-colors">
-                                <div className="w-10 h-10 bg-black/5 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
-                                    <img src={art.url} className="w-full h-full object-contain" />
+                            <div key={art.id} className="flex flex-col gap-3 p-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl hover:bg-black/10 transition-colors">
+                                <div className="flex items-center gap-3 w-full">
+                                    <div className="w-12 h-12 bg-black/5 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                                        <img src={art.url} className="w-full h-full object-contain" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="text-xs font-bold truncate">Layer {index + 1}</p>
+                                            <button onClick={() => removeArtwork(art.id)} className="w-5 h-5 flex items-center justify-center text-red-500/60 hover:text-red-500 transition-colors shrink-0">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-black/50 dark:text-white/50">
+                                            <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded px-1.5 py-1">
+                                                W: <input
+                                                    type="number"
+                                                    value={Number((art.width / CANVAS_PIXELS_PER_INCH).toFixed(2))}
+                                                    onChange={(e) => handleExactResize(art.id, parseFloat(e.target.value), 'width')}
+                                                    className="w-10 bg-transparent outline-none font-bold text-black dark:text-white hide-arrows"
+                                                    step="0.1" min="0.1"
+                                                />"
+                                            </div>
+                                            <span className="text-black/30 dark:text-white/30">x</span>
+                                            <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded px-1.5 py-1">
+                                                H: <input
+                                                    type="number"
+                                                    value={Number((art.height / CANVAS_PIXELS_PER_INCH).toFixed(2))}
+                                                    onChange={(e) => handleExactResize(art.id, parseFloat(e.target.value), 'height')}
+                                                    className="w-10 bg-transparent outline-none font-bold text-black dark:text-white hide-arrows"
+                                                    step="0.1" min="0.1"
+                                                />"
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold truncate">Layer {index + 1}</p>
-                                    <p className="text-[10px] text-black/50 dark:text-white/50">{(art.width / CANVAS_PIXELS_PER_INCH).toFixed(1)}x{(art.height / CANVAS_PIXELS_PER_INCH).toFixed(1)}"</p>
+                                <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 mt-1">
+                                    <span className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Duplicates</span>
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const input = e.currentTarget.elements.namedItem('copyCount') as HTMLInputElement;
+                                        duplicateArtworkMultiple(art, parseInt(input.value, 10));
+                                        input.value = '1';
+                                    }} className="flex items-center gap-1">
+                                        <input name="copyCount" type="number" defaultValue="1" min="1" max="50" className="w-12 h-6 text-xs font-bold text-center bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded" />
+                                        <button type="submit" className="h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold rounded uppercase tracking-wider transition-colors">Add</button>
+                                    </form>
                                 </div>
-                                <button onClick={() => removeArtwork(art.id)} className="w-6 h-6 flex items-center justify-center text-red-500/60 hover:text-red-500 transition-colors shrink-0">
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
                             </div>
                         ))
                     )}
