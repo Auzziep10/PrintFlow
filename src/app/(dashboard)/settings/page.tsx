@@ -10,7 +10,25 @@ const MOCK_TEAM = [
 ];
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team'>('team');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments'>('payments');
+    const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+
+    const handleStripeConnect = async () => {
+        setIsConnectingStripe(true);
+        try {
+            const res = await fetch('/api/stripe/connect', { method: 'POST' });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url; // Redirect to Stripe onboarding
+            } else if (data.demo) {
+                alert("Running in Demo Mode: Stripe Connect flow would launch here. Paste real keys in .env.local to activate!");
+                setIsConnectingStripe(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsConnectingStripe(false);
+        }
+    };
 
     return (
         <div className="p-8 h-full mx-auto max-w-[1400px] flex flex-col">
@@ -31,6 +49,12 @@ export default function SettingsPage() {
                         className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'team' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
                     >
                         Team & Roles
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('payments')}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'payments' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
+                    >
+                        Payments
                     </button>
                 </div>
             </header>
@@ -110,6 +134,63 @@ export default function SettingsPage() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'payments' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl relative z-10">
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="w-12 h-12 bg-[#635BFF]/10 text-[#635BFF] flex items-center justify-center rounded-[1rem]">
+                                <svg className="w-6 h-6" viewBox="0 0 40 40" fill="currentColor">
+                                    <path fillRule="evenodd" clipRule="evenodd" d="M20 40C31.0457 40 40 31.0457 40 20C40 8.9543 31.0457 0 20 0C8.9543 0 0 8.9543 0 20C0 31.0457 8.9543 40 20 40ZM15.8242 16.0357C15.8242 14.7731 16.9208 13.7854 18.2323 13.7854H22.3732C23.6353 13.7854 24.6853 14.7397 24.6853 16.0357C24.6853 17.1593 23.9515 18.068 23.0163 18.2562V19.9926H22.4276C21.4363 19.9926 20.6322 20.8016 20.6322 21.7981C20.6322 22.7946 21.4363 23.6036 22.4276 23.6036H23.0163V25.3399C23.9515 25.5281 24.6853 26.4369 24.6853 27.5604C24.6853 28.8565 23.6353 29.8107 22.3732 29.8107H18.2323C16.9208 29.8107 15.8242 28.8231 15.8242 27.5604H17.8306C17.8306 27.7667 18.0195 27.9362 18.2323 27.9362H22.3732C22.6186 27.9362 22.8143 27.7297 22.8143 27.5604C22.8143 27.3912 22.6186 27.1848 22.3732 27.1848H18.2323C15.8458 27.1848 13.9533 25.3344 13.9533 23.0239C13.9533 20.7134 15.8458 18.863 18.2323 18.863H20.6322C20.8711 18.863 21.0567 18.667 21.0567 18.4116C21.0567 18.1561 20.8711 17.9602 20.6322 17.9602H18.2323C18.0195 17.9602 17.8306 17.7907 17.8306 17.5843C17.8306 17.378 18.0195 17.2085 18.2323 17.2085H22.3732C23.6847 17.2085 24.7813 16.2208 24.7813 14.9582C24.7813 13.6956 23.6847 12.708 22.3732 12.708H18.2323C15.8458 12.708 13.9533 14.5584 13.9533 16.8689V18.6052H15.8242V16.0357Z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold tracking-tight">Payment Processing</h2>
+                        </div>
+                        <p className="text-sm font-medium text-black/60 dark:text-white/60 mb-8 max-w-lg">
+                            Securely link your real business bank account using Stripe Connect. We automatically attach an integrated "Pay Now" link directly onto your customer invoice portals.
+                        </p>
+
+                        <div className="bg-gradient-to-br from-[#635BFF]/5 to-[#00D4FF]/5 rounded-[2rem] p-8 border border-[#635BFF]/10 flex flex-col gap-6">
+                            <div className="flex gap-4">
+                                <div className="min-w-[40px] h-[40px] rounded-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-[#635BFF]">1</div>
+                                <div>
+                                    <h4 className="font-bold text-black/90 dark:text-white/90">Identity Verification</h4>
+                                    <p className="text-sm text-black/60 dark:text-white/60 mt-0.5">Stripe will securely collect your business entity details.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="min-w-[40px] h-[40px] rounded-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-[#635BFF]">2</div>
+                                <div>
+                                    <h4 className="font-bold text-black/90 dark:text-white/90">Link Bank Account</h4>
+                                    <p className="text-sm text-black/60 dark:text-white/60 mt-0.5">Decide where you want your customer payments routed to.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="min-w-[40px] h-[40px] rounded-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-[#635BFF]">3</div>
+                                <div>
+                                    <h4 className="font-bold text-black/90 dark:text-white/90">Start Collecting</h4>
+                                    <p className="text-sm text-black/60 dark:text-white/60 mt-0.5">Customers can immediately pay via CC, ACH, or Apple Pay.</p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleStripeConnect}
+                                disabled={isConnectingStripe}
+                                className="w-full mt-4 py-4 bg-[#635BFF] hover:bg-[#5851E5] text-white rounded-2xl text-[15px] font-bold transition-all shadow-lg shadow-[#635BFF]/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70"
+                            >
+                                {isConnectingStripe ? (
+                                    <>
+                                        <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        Connecting to Gateway...
+                                    </>
+                                ) : (
+                                    <>
+                                        Initialize Stripe Connect &rarr;
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 )}

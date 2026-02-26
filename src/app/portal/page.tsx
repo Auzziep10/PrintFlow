@@ -35,6 +35,33 @@ export default function CustomerPortalPage() {
     const [artworks, setArtworks] = useState(MOCK_ORDER.artworks);
     const [isSigned, setIsSigned] = useState(false);
     const [signature, setSignature] = useState('');
+    const [isPaying, setIsPaying] = useState(false);
+
+    const handlePayment = async () => {
+        setIsPaying(true);
+        try {
+            const res = await fetch('/api/stripe/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: MOCK_ORDER.id,
+                    amount: MOCK_ORDER.total,
+                    shopConnectedAccountId: 'acct_demo123' // Example placeholder
+                })
+            });
+            const data = await res.json();
+
+            if (data.url) {
+                window.location.href = data.url; // Trigger Stripe Hosted Checkout Redirect
+            } else if (data.demo) {
+                alert("Demo Mode: Customer is redirected to Stripe Checkout to pay via CC or Apple Pay. The funds are routed directly to the print shop's connected account.");
+                setIsPaying(false);
+            }
+        } catch (error) {
+            console.error("Payment Error:", error);
+            setIsPaying(false);
+        }
+    };
 
     const allApproved = artworks.every(art => art.approved);
 
@@ -144,8 +171,27 @@ export default function CustomerPortalPage() {
                     </div>
 
                     {isSigned && (
-                        <div className="mt-6 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-sm font-medium text-green-700 dark:text-green-400 animate-in fade-in slide-in-from-top-2">
-                            Success! Your artwork has been approved. This order will now move to the "In Production" stage automatically. Thank you!
+                        <div className="mt-6 p-6 rounded-2xl bg-green-500/10 border border-green-500/20 text-sm font-medium animate-in fade-in slide-in-from-top-2 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <span className="text-green-700 dark:text-green-400">Success! Your artwork has been approved. This order will now move to the "In Production" stage automatically. Thank you!</span>
+
+                            {/* DEMO STRIPE CHECKOUT BUTTON */}
+                            <button
+                                onClick={handlePayment}
+                                disabled={isPaying}
+                                className="w-full md:w-auto px-6 py-2.5 bg-[#635BFF] hover:bg-[#5851E5] text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 flex-shrink-0 disabled:opacity-50"
+                            >
+                                {isPaying ? (
+                                    <>
+                                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" viewBox="0 0 40 40" fill="currentColor"><path fillRule="evenodd" clipRule="evenodd" d="M20 40C31.0457 40 40 31.0457 40 20C40 8.9543 31.0457 0 20 0C8.9543 0 0 8.9543 0 20C0 31.0457 8.9543 40 20 40ZM15.8242 16.0357C15.8242 14.7731 16.9208 13.7854 18.2323 13.7854H22.3732C23.6353 13.7854 24.6853 14.7397 24.6853 16.0357C24.6853 17.1593 23.9515 18.068 23.0163 18.2562V19.9926H22.4276C21.4363 19.9926 20.6322 20.8016 20.6322 21.7981C20.6322 22.7946 21.4363 23.6036 22.4276 23.6036H23.0163V25.3399C23.9515 25.5281 24.6853 26.4369 24.6853 27.5604C24.6853 28.8565 23.6353 29.8107 22.3732 29.8107H18.2323C16.9208 29.8107 15.8242 28.8231 15.8242 27.5604H17.8306C17.8306 27.7667 18.0195 27.9362 18.2323 27.9362H22.3732C22.6186 27.9362 22.8143 27.7297 22.8143 27.5604C22.8143 27.3912 22.6186 27.1848 22.3732 27.1848H18.2323C15.8458 27.1848 13.9533 25.3344 13.9533 23.0239C13.9533 20.7134 15.8458 18.863 18.2323 18.863H20.6322C20.8711 18.863 21.0567 18.667 21.0567 18.4116C21.0567 18.1561 20.8711 17.9602 20.6322 17.9602H18.2323C18.0195 17.9602 17.8306 17.7907 17.8306 17.5843C17.8306 17.378 18.0195 17.2085 18.2323 17.2085H22.3732C23.6847 17.2085 24.7813 16.2208 24.7813 14.9582C24.7813 13.6956 23.6847 12.708 22.3732 12.708H18.2323C15.8458 12.708 13.9533 14.5584 13.9533 16.8689V18.6052H15.8242V16.0357Z" /></svg>
+                                        Pay Invoice Now
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
                 </div>
