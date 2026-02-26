@@ -99,10 +99,10 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
 
             <div className="flex-1 flex flex-col md:flex-row min-h-0 bg-black/5 dark:bg-white/5">
                 {/* Canvas Area */}
-                <div className="flex-1 relative overflow-hidden flex items-center justify-center p-8">
+                <div className="flex-1 relative overflow-hidden flex items-center justify-center p-0 md:p-4">
                     <div
                         ref={containerRef}
-                        className="relative w-full max-w-2xl aspect-[4/5] bg-white dark:bg-black rounded-xl shadow-sm border border-black/10 dark:border-white/10 overflow-hidden"
+                        className="relative w-full h-full bg-transparent overflow-hidden flex items-center justify-center"
                     >
                         {!garmentImage ? (
                             <div className="absolute inset-0 flex items-center justify-center flex-col text-black/30 dark:text-white/30 p-10 text-center border-2 border-dashed border-black/10 dark:border-white/10 m-4 rounded-xl">
@@ -112,7 +112,7 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                             </div>
                         ) : (
                             // Changed from object-cover to object-contain so we never crop the garment
-                            <img src={garmentImage} alt="Garment" className="w-full h-full object-contain pointer-events-none" />
+                            <img src={garmentImage} alt="Garment" className="w-auto h-full max-w-full max-h-full object-contain pointer-events-none" />
                         )}
 
                         {garmentImage && logoImage && (
