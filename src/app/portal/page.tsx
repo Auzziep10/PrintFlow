@@ -72,12 +72,12 @@ export default function CustomerPortalPage() {
     };
 
     return (
-        <div className="flex-1 w-full h-full overflow-y-auto bg-[var(--background)] p-4 md:p-10 relative flex justify-center">
+        <div className="flex-1 w-full overflow-y-auto bg-[var(--background)] p-4 md:p-10 relative">
             {/* Decorative Blurs */}
             <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/10 dark:bg-purple-600/10 blur-[120px] pointer-events-none" />
 
-            <div className="w-full max-w-7xl z-10 flex flex-col gap-8">
+            <div className="w-full max-w-7xl mx-auto z-10 flex flex-col gap-8">
 
                 {/* Portal Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between glass-panel p-6 rounded-[2rem] gap-4">
