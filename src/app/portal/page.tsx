@@ -72,7 +72,7 @@ export default function CustomerPortalPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--background)] p-4 md:p-10 relative flex justify-center w-full">
+        <div className="flex-1 w-full h-full overflow-y-auto bg-[var(--background)] p-4 md:p-10 relative flex justify-center">
             {/* Decorative Blurs */}
             <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-600/10 blur-[120px] pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/10 dark:bg-purple-600/10 blur-[120px] pointer-events-none" />
