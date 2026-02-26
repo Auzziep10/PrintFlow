@@ -43,29 +43,36 @@ export async function POST(req: Request) {
             };
         }
 
-        // Call Gemini Image endpoint
-        const response = await ai.models.generateImages({
+        // Create the contents layout
+        const contents: any[] = [{ text: prompt }];
+
+        if (logoBase64) {
+            // For multimodal edit or reference, just attach the image to the multimodal prompt
+            contents.unshift({
+                inlineData: {
+                    mimeType: "image/png", // generic, or infer from base64
+                    data: logoBase64
+                }
+            });
+        }
+
+        // Call standard generation endpoint but specify IMAGE modality
+        const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
-            prompt: prompt,
+            contents: contents,
             config: {
-                numberOfImages: 1,
-                outputMimeType: "image/jpeg",
-                aspectRatio: "1:1",
-                // Provide the reference image for edit/subject mode if uploaded
-                ...(logoBase64 ? {
-                    referenceImages: [{
-                        type: "SUBJECT", // SDK enum or similar for editing subjects
-                        image: {
-                            imageBytes: logoBase64
-                        }
-                    }]
-                } : {})
+                responseModalities: ["IMAGE"]
             }
         });
 
         let base64Image = null;
-        if (response?.generatedImages && response.generatedImages.length > 0) {
-            base64Image = response.generatedImages[0].image?.imageBytes;
+
+        if (response?.candidates && response.candidates.length > 0) {
+            const parts = response.candidates[0].content?.parts || [];
+            const imagePart = parts.find(p => p.inlineData);
+            if (imagePart && imagePart.inlineData) {
+                base64Image = imagePart.inlineData.data;
+            }
         }
 
         if (!base64Image) {
