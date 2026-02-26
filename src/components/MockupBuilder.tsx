@@ -7,12 +7,14 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
     const [logoImage, setLogoImage] = useState<string | null>(null);
 
     // Position and scale of the logo
-    const [logoState, setLogoState] = useState({ x: 100, y: 100, width: 150 });
+    const [logoState, setLogoState] = useState({ x: 150, y: 150, width: 150, rotate: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
+    const [isRotating, setIsRotating] = useState(false);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0, initialWidth: 0 });
+    const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0, initialWidth: 0, initialRotate: 0, initialMouseAngle: 0 });
+    const rotateCenterRef = useRef({ x: 0, y: 0 });
 
     const handleGarmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -28,7 +30,7 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
         }
     };
 
-    // Global Pointer Listeners for Drag/Resize
+    // Global Pointer Listeners for Drag/Resize/Rotate
     useEffect(() => {
         const handlePointerMove = (e: PointerEvent) => {
             if (isDragging) {
@@ -46,15 +48,23 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                     ...prev,
                     width: Math.max(50, dragStartRef.current.initialWidth + dx)
                 }));
+            } else if (isRotating) {
+                const currentMouseAngle = Math.atan2(e.clientY - rotateCenterRef.current.y, e.clientX - rotateCenterRef.current.x) * (180 / Math.PI);
+                const angleDifference = currentMouseAngle - dragStartRef.current.initialMouseAngle;
+                setLogoState(prev => ({
+                    ...prev,
+                    rotate: dragStartRef.current.initialRotate + angleDifference
+                }));
             }
         };
 
         const handlePointerUp = () => {
             setIsDragging(false);
             setIsResizing(false);
+            setIsRotating(false);
         };
 
-        if (isDragging || isResizing) {
+        if (isDragging || isResizing || isRotating) {
             window.addEventListener('pointermove', handlePointerMove);
             window.addEventListener('pointerup', handlePointerUp);
         }
@@ -63,7 +73,7 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
         };
-    }, [isDragging, isResizing]);
+    }, [isDragging, isResizing, isRotating]);
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-black rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
@@ -101,7 +111,8 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                                 <span className="text-xs mt-2 font-medium">Please upload a blank garment image using the controls on the right.</span>
                             </div>
                         ) : (
-                            <img src={garmentImage} alt="Garment" className="w-full h-full object-cover pointer-events-none" />
+                            // Changed from object-cover to object-contain so we never crop the garment
+                            <img src={garmentImage} alt="Garment" className="w-full h-full object-contain pointer-events-none" />
                         )}
 
                         {garmentImage && logoImage && (
@@ -111,6 +122,8 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                                     left: logoState.x,
                                     top: logoState.y,
                                     width: logoState.width,
+                                    transform: `rotate(${logoState.rotate}deg)`,
+                                    transformOrigin: 'center center',
                                     cursor: isDragging ? 'grabbing' : 'grab'
                                 }}
                                 className={`group touch-none ${isDragging ? 'opacity-80' : ''}`}
@@ -125,20 +138,44 @@ export default function MockupBuilder({ onSave, onCancel }: { onSave: () => void
                                 <div
                                     onPointerDown={(e) => {
                                         setIsDragging(true);
-                                        dragStartRef.current = { x: e.clientX, y: e.clientY, initialX: logoState.x, initialY: logoState.y, initialWidth: logoState.width };
+                                        dragStartRef.current = { x: e.clientX, y: e.clientY, initialX: logoState.x, initialY: logoState.y, initialWidth: logoState.width, initialRotate: logoState.rotate, initialMouseAngle: 0 };
                                         e.stopPropagation();
                                     }}
                                     className="absolute inset-0 border-2 border-blue-500 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-500/10"
                                 >
-                                    {/* Resize Handle */}
+                                    {/* Rotate Handle (Top Right) */}
+                                    <div
+                                        onPointerDown={(e) => {
+                                            setIsRotating(true);
+                                            setIsDragging(false);
+                                            dragStartRef.current = { x: e.clientX, y: e.clientY, initialX: logoState.x, initialY: logoState.y, initialWidth: logoState.width, initialRotate: logoState.rotate, initialMouseAngle: 0 };
+
+                                            // Calculate the center of the logo for rotation math
+                                            const rect = (e.target as HTMLElement).parentElement?.getBoundingClientRect();
+                                            if (rect) {
+                                                const centerX = rect.left + rect.width / 2;
+                                                const centerY = rect.top + rect.height / 2;
+                                                // Store the initial angle of the mouse click relative to the center
+                                                rotateCenterRef.current = { x: centerX, y: centerY };
+                                                const initialAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                                                dragStartRef.current.initialMouseAngle = initialAngle;
+                                            }
+                                            e.stopPropagation();
+                                        }}
+                                        className="absolute -top-3 -right-3 w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow-sm flex items-center justify-center text-blue-500 hover:scale-110 transition-transform"
+                                    >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    </div>
+
+                                    {/* Resize Handle (Bottom Right) */}
                                     <div
                                         onPointerDown={(e) => {
                                             setIsResizing(true);
                                             setIsDragging(false); // don't drag while resizing
-                                            dragStartRef.current = { x: e.clientX, y: e.clientY, initialX: logoState.x, initialY: logoState.y, initialWidth: logoState.width };
+                                            dragStartRef.current = { x: e.clientX, y: e.clientY, initialX: logoState.x, initialY: logoState.y, initialWidth: logoState.width, initialRotate: logoState.rotate, initialMouseAngle: 0 };
                                             e.stopPropagation();
                                         }}
-                                        className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow-sm"
+                                        className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow-sm hover:scale-125 transition-transform"
                                     />
                                 </div>
                             </div>
