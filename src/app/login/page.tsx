@@ -23,7 +23,7 @@ export default function Login() {
                         EmailAuthProvider.PROVIDER_ID,
                         GoogleAuthProvider.PROVIDER_ID,
                     ],
-                    signInSuccessUrl: '/', // Redirect back to Dashboard on success
+                    signInSuccessUrl: undefined, // Let AuthContext handle the redirect
                     tosUrl: '/terms',
                     privacyPolicyUrl: '/privacy'
                 });
