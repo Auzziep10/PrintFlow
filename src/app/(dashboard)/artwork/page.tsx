@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import MockupBuilder from '@/components/MockupBuilder';
+import AiMockupModal from '@/components/AiMockupModal';
 
 // Mock active orders needing artwork attention
 const ARTWORK_ORDERS = [
@@ -14,6 +15,7 @@ export default function ArtworkApprovalsPage() {
     const [activeOrder, setActiveOrder] = useState(ARTWORK_ORDERS[0].id);
     const [isBuildingMockup, setIsBuildingMockup] = useState(false);
     const [savedMockups, setSavedMockups] = useState<string[]>([]);
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
     return (
         <div className="p-8 h-full mx-auto max-w-[1700px] flex flex-col gap-6">
@@ -146,7 +148,7 @@ export default function ArtworkApprovalsPage() {
                                                 <span className="text-xs font-bold text-black/30 dark:text-white/30 uppercase">OR</span>
                                                 <div className="h-px bg-black/10 dark:bg-white/10 flex-1"></div>
                                             </div>
-                                            <button className="py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group/ai relative overflow-hidden">
+                                            <button onClick={() => setIsAiModalOpen(true)} className="py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group/ai relative overflow-hidden">
                                                 <svg className="w-4 h-4 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
                                                 Generate AI Mockup
                                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/ai:translate-y-0 transition-transform duration-300"></div>
@@ -161,6 +163,16 @@ export default function ArtworkApprovalsPage() {
 
                 </div>
             </div>
+
+            {/* AI Generator Modal Overlay */}
+            <AiMockupModal
+                isOpen={isAiModalOpen}
+                onClose={() => setIsAiModalOpen(false)}
+                onSave={(url) => {
+                    setSavedMockups(prev => [url, ...prev]);
+                    setIsAiModalOpen(false);
+                }}
+            />
         </div>
     );
 }
