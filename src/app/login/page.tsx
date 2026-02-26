@@ -19,11 +19,14 @@ export default function Login() {
                 const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
 
                 ui.start('#firebaseui-auth-container', {
+                    signInFlow: 'popup', // Use popup to avoid page refresh loops
                     signInOptions: [
                         EmailAuthProvider.PROVIDER_ID,
                         GoogleAuthProvider.PROVIDER_ID,
                     ],
-                    signInSuccessUrl: undefined, // Let AuthContext handle the redirect
+                    callbacks: {
+                        signInSuccessWithAuthResult: () => false, // Do not trigger default redirect
+                    },
                     tosUrl: '/terms',
                     privacyPolicyUrl: '/privacy'
                 });
