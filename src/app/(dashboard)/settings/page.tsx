@@ -10,8 +10,31 @@ const MOCK_TEAM = [
 ];
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments'>('payments');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments' | 'billing'>('billing');
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+    const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
+
+    const handleSubscribe = async (priceId: string, planName: string) => {
+        setIsSubscribing(planName);
+        try {
+            const res = await fetch('/api/stripe/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ priceId, planName })
+            });
+            const data = await res.json();
+
+            if (data.url) {
+                window.location.href = data.url; // Redirect to Stripe Checkout
+            } else if (data.demo) {
+                alert(data.message);
+                setIsSubscribing(null);
+            }
+        } catch (error) {
+            console.error(error);
+            setIsSubscribing(null);
+        }
+    };
 
     const handleStripeConnect = async () => {
         setIsConnectingStripe(true);
@@ -55,6 +78,12 @@ export default function SettingsPage() {
                         className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'payments' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
                     >
                         Payments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('billing')}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'billing' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
+                    >
+                        Billing & Plans
                     </button>
                 </div>
             </header>
@@ -191,6 +220,63 @@ export default function SettingsPage() {
                                     </>
                                 )}
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'billing' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative z-10 w-full max-w-5xl">
+                        <div className="mb-8 max-w-2xl">
+                            <h2 className="text-2xl font-bold tracking-tight mb-2">Platform Subscription</h2>
+                            <p className="text-sm font-medium text-black/60 dark:text-white/60">
+                                Upgrade your Printflow workspace to unlock powerful automation tools, AI mockups, and the embedded Gangsheet Builder.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Free Tier */}
+                            <div className="glass-panel rounded-[2rem] p-8 flex flex-col border border-black/5 dark:border-white/5 opacity-80">
+                                <h3 className="text-lg font-bold text-black/80 dark:text-white/80">Starter</h3>
+                                <div className="mt-4 mb-6"><span className="text-4xl font-extrabold">$0</span><span className="text-black/50 dark:text-white/50 font-medium">/mo</span></div>
+                                <ul className="flex flex-col gap-3 text-sm font-medium text-black/70 dark:text-white/70 mb-8 flex-1">
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Basic CRM</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> 1 User Seat</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Manual Quoting</li>
+                                </ul>
+                                <button className="w-full py-3 bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 rounded-xl text-sm font-bold cursor-default">Current Plan</button>
+                            </div>
+
+                            {/* Pro Tier */}
+                            <div className="bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-[2rem] p-8 flex flex-col relative shadow-xl shadow-blue-900/20 transform md:-translate-y-4">
+                                <div className="absolute top-0 right-8 -translate-y-1/2 bg-yellow-400 text-yellow-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">Popular</div>
+                                <h3 className="text-lg font-bold text-blue-100">Pro Workshop</h3>
+                                <div className="mt-4 mb-6"><span className="text-4xl font-extrabold">$49</span><span className="text-blue-200 font-medium">/mo</span></div>
+                                <ul className="flex flex-col gap-3 text-sm font-medium text-blue-100 mb-8 flex-1">
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Pricing Engine Automations</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> AI Image Mockups</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> 5 User Seats</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Client Portal & Sign-offs</li>
+                                </ul>
+                                <button onClick={() => handleSubscribe('price_pro_placeholder', 'Pro')} disabled={isSubscribing !== null} className="w-full py-3 bg-white text-blue-800 hover:bg-blue-50 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 flex items-center justify-center">
+                                    {isSubscribing === 'Pro' ? <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> : 'Upgrade to Pro'}
+                                </button>
+                            </div>
+
+                            {/* Enterprise Tier */}
+                            <div className="glass-panel rounded-[2rem] p-8 flex flex-col border border-black/5 dark:border-white/5">
+                                <h3 className="text-lg font-bold text-black/80 dark:text-white/80">Scale</h3>
+                                <div className="mt-4 mb-6"><span className="text-4xl font-extrabold">$149</span><span className="text-black/50 dark:text-white/50 font-medium">/mo</span></div>
+                                <ul className="flex flex-col gap-3 text-sm font-medium text-black/70 dark:text-white/70 mb-8 flex-1">
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Unlimited User Seats</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Embedded Gangsheet Builder</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Custom Invoice Templates</li>
+                                    <li className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Priority Phone Support</li>
+                                </ul>
+                                <button onClick={() => handleSubscribe('price_scale_placeholder', 'Scale')} disabled={isSubscribing !== null} className="w-full py-3 bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center">
+                                    {isSubscribing === 'Scale' ? <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> : 'Upgrade to Scale'}
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                 )}
