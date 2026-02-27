@@ -94,6 +94,10 @@ export default function GangsheetBuilderApp() {
         setArtworks(prev => prev.filter(art => art.id !== id));
     };
 
+    const removeGroup = (url: string) => {
+        setArtworks(prev => prev.filter(art => art.url !== url));
+    };
+
     const duplicateArtwork = (art: ArtworkInstance) => {
         const gapPx = autoGapInches * CANVAS_PIXELS_PER_INCH;
         let nextX = art.x + art.width + gapPx;
@@ -136,11 +140,11 @@ export default function GangsheetBuilderApp() {
         setArtworks(prev => [...prev, ...newArtworks]);
     };
 
-    const handleExactResize = (id: string, newInches: number, dimension: 'width' | 'height') => {
+    const handleExactResize = (url: string, newInches: number, dimension: 'width' | 'height') => {
         if (newInches <= 0 || isNaN(newInches)) return;
 
         setArtworks(prev => prev.map(art => {
-            if (art.id !== id) return art;
+            if (art.url !== url) return art;
 
             const currentRatio = art.width / art.height;
             let newWidthPx, newHeightPx;
@@ -202,6 +206,16 @@ export default function GangsheetBuilderApp() {
         setValidationWarnings(warnings);
         setShowCheckoutModal(true);
     };
+
+    const uniqueGraphics = artworks.reduce((acc, art) => {
+        if (!acc.find(g => g.url === art.url)) {
+            acc.push({ ...art, count: 1 });
+        } else {
+            const existing = acc.find(g => g.url === art.url)!;
+            existing.count += 1;
+        }
+        return acc;
+    }, [] as (ArtworkInstance & { count: number })[]);
 
     return (
         <div className="h-screen w-full bg-[var(--background)] flex overflow-hidden font-sans">
@@ -301,20 +315,21 @@ export default function GangsheetBuilderApp() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto hidden-scrollbar pr-2 mb-6 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40 mb-2">Layers ({artworks.length})</h3>
-                    {artworks.length === 0 ? (
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40 mb-2">Graphics ({uniqueGraphics.length})</h3>
+                    {uniqueGraphics.length === 0 ? (
                         <p className="text-sm text-black/50 dark:text-white/50 text-center py-4 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5">No layers yet.<br />Upload art to start building.</p>
                     ) : (
-                        artworks.map((art, index) => (
-                            <div key={art.id} className="flex flex-col gap-3 p-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl hover:bg-black/10 transition-colors">
+                        uniqueGraphics.map((group, index) => (
+                            <div key={group.url} className="flex flex-col gap-3 p-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl hover:bg-black/10 transition-colors">
                                 <div className="flex items-center gap-3 w-full">
-                                    <div className="w-12 h-12 bg-black/5 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
-                                        <img src={art.url} className="w-full h-full object-contain" />
+                                    <div className="w-12 h-12 bg-black/5 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden relative">
+                                        <img src={group.url} className="w-full h-full object-contain" />
+                                        <span className="absolute bottom-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 rounded-tl-lg">{group.count}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs font-bold truncate">Layer {index + 1}</p>
-                                            <button onClick={() => removeArtwork(art.id)} className="w-5 h-5 flex items-center justify-center text-red-500/60 hover:text-red-500 transition-colors shrink-0">
+                                            <p className="text-xs font-bold truncate">Graphic {index + 1}</p>
+                                            <button onClick={() => removeGroup(group.url)} className="w-5 h-5 flex items-center justify-center text-red-500/60 hover:text-red-500 transition-colors shrink-0" title="Delete All Copies">
                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                             </button>
                                         </div>
@@ -322,8 +337,8 @@ export default function GangsheetBuilderApp() {
                                             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded px-1.5 py-1">
                                                 W: <input
                                                     type="number"
-                                                    value={Number((art.width / CANVAS_PIXELS_PER_INCH).toFixed(2))}
-                                                    onChange={(e) => handleExactResize(art.id, parseFloat(e.target.value), 'width')}
+                                                    value={Number((group.width / CANVAS_PIXELS_PER_INCH).toFixed(2))}
+                                                    onChange={(e) => handleExactResize(group.url, parseFloat(e.target.value), 'width')}
                                                     className="w-10 bg-transparent outline-none font-bold text-black dark:text-white hide-arrows"
                                                     step="0.1" min="0.1"
                                                 />"
@@ -332,8 +347,8 @@ export default function GangsheetBuilderApp() {
                                             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded px-1.5 py-1">
                                                 H: <input
                                                     type="number"
-                                                    value={Number((art.height / CANVAS_PIXELS_PER_INCH).toFixed(2))}
-                                                    onChange={(e) => handleExactResize(art.id, parseFloat(e.target.value), 'height')}
+                                                    value={Number((group.height / CANVAS_PIXELS_PER_INCH).toFixed(2))}
+                                                    onChange={(e) => handleExactResize(group.url, parseFloat(e.target.value), 'height')}
                                                     className="w-10 bg-transparent outline-none font-bold text-black dark:text-white hide-arrows"
                                                     step="0.1" min="0.1"
                                                 />"
@@ -342,14 +357,14 @@ export default function GangsheetBuilderApp() {
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 mt-1">
-                                    <span className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Duplicates</span>
+                                    <span className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Add Copies</span>
                                     <form onSubmit={(e) => {
                                         e.preventDefault();
                                         const input = e.currentTarget.elements.namedItem('copyCount') as HTMLInputElement;
-                                        duplicateArtworkMultiple(art, parseInt(input.value, 10));
+                                        duplicateArtworkMultiple(group, parseInt(input.value, 10));
                                         input.value = '1';
                                     }} className="flex items-center gap-1">
-                                        <input name="copyCount" type="number" defaultValue="1" min="1" max="50" className="w-12 h-6 text-xs font-bold text-center bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded" />
+                                        <input name="copyCount" type="number" defaultValue="1" min="1" max="100" className="w-12 h-6 text-xs font-bold text-center bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded" />
                                         <button type="submit" className="h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold rounded uppercase tracking-wider transition-colors">Add</button>
                                     </form>
                                 </div>
