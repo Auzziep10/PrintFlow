@@ -60,15 +60,15 @@ export default function GangsheetBuilderApp() {
         // Preserve the order of URLs as they currently appear
         const urlOrder = Array.from(new Set(currentArts.map(a => a.url)));
 
-        let startX = 20;
-        let startY = 20;
+        let startX = 0;
+        let startY = 0;
         let maxRowHeight = 0;
 
         urlOrder.forEach(url => {
             const groupArts = currentArts.filter(a => a.url === url);
             groupArts.forEach(art => {
-                if (startX + art.width > CANVAS_WIDTH_PX && startX > 20) {
-                    startX = 20;
+                if (startX + art.width > CANVAS_WIDTH_PX && startX > 0) {
+                    startX = 0;
                     startY += maxRowHeight + gapPx;
                     maxRowHeight = 0;
                 }
@@ -111,8 +111,8 @@ export default function GangsheetBuilderApp() {
                     url: url,
                     width: dropWidthPx,
                     height: dropHeightPx,
-                    x: 20,
-                    y: 20,
+                    x: 0,
+                    y: 0,
                     intrinsicWidth: img.width,
                     intrinsicHeight: img.height
                 }], autoGapInches));
@@ -254,12 +254,6 @@ export default function GangsheetBuilderApp() {
                         backgroundSize: '15px 15px'
                     }}
                 >
-                    {/* Top Tape Identifier */}
-                    <div className="absolute top-0 left-0 w-full h-8 bg-black/5 flex items-center justify-between px-4 border-b border-black/10 pointer-events-none select-none">
-                        <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">DTF Film Header</span>
-                        <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Width: {CANVAS_WIDTH_INCHES}"</span>
-                    </div>
-
                     {artworks.map((art) => (
                         <Rnd
                             key={art.id}
