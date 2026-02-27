@@ -9,6 +9,8 @@ interface InvoiceItem {
     quantity: number;
     unitPrice: number;
     total: number;
+    color?: string;
+    sizes?: { [size: string]: number };
 }
 
 interface InvoiceProps {
@@ -133,12 +135,31 @@ export default function InvoicePDF({ data }: { data: InvoiceProps }) {
                         </thead>
                         <tbody>
                             {data.items.map((item, index) => (
-                                <tr key={index} className="border-b border-black/5">
-                                    <td className="py-5 text-sm font-bold text-black">{item.description}</td>
-                                    <td className="py-5 text-sm font-medium text-black/70 text-center">{item.quantity}</td>
-                                    <td className="py-5 text-sm font-medium text-black/70 text-right">${item.unitPrice.toFixed(2)}</td>
-                                    <td className="py-5 text-sm font-bold text-black text-right">${item.total.toFixed(2)}</td>
-                                </tr>
+                                <React.Fragment key={index}>
+                                    <tr className={item.sizes ? "" : "border-b border-black/5"}>
+                                        <td className="py-5 text-sm font-bold text-black border-none align-top">
+                                            {item.description}
+                                            {item.color && <div className="text-xs font-semibold text-black/50 mt-1 uppercase tracking-wider">Color: {item.color}</div>}
+                                        </td>
+                                        <td className="py-5 text-sm font-medium text-black/70 text-center border-none align-top">{item.quantity}</td>
+                                        <td className="py-5 text-sm font-medium text-black/70 text-right border-none align-top">${item.unitPrice.toFixed(2)}</td>
+                                        <td className="py-5 text-sm font-bold text-black text-right border-none align-top">${item.total.toFixed(2)}</td>
+                                    </tr>
+                                    {item.sizes && (
+                                        <tr className="border-b border-black/5">
+                                            <td colSpan={4} className="pb-5 pt-0">
+                                                <div className="bg-black/[0.03] border border-black/10 rounded-lg overflow-hidden inline-flex max-w-full">
+                                                    {Object.entries(item.sizes).map(([size, amount], idx) => (
+                                                        <div key={size} className={`flex flex-col text-center min-w-[40px] ${idx > 0 ? 'border-l border-black/10' : ''}`}>
+                                                            <div className="text-[10px] font-bold text-black/50 bg-black/5 py-1 uppercase px-2">{size}</div>
+                                                            <div className="text-xs font-bold text-black bg-white py-1.5 px-2">{amount}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>

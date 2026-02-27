@@ -13,7 +13,14 @@ export default function QuotesPage() {
         clientName: "Wayne Enterprises",
         clientEmail: "bwayne@gotham.com",
         items: [
-            { description: "Premium Cotton Tees (Black, L)", quantity: 150, unitPrice: 12.50, total: 1875.00 },
+            {
+                description: "Premium Cotton Tees",
+                color: "Vintage Black",
+                sizes: { "S": 25, "M": 50, "L": 50, "XL": 20, "2XL": 5 },
+                quantity: 150,
+                unitPrice: 12.50,
+                total: 1875.00
+            },
             { description: "Custom Screen Print (Front, 2-colors)", quantity: 150, unitPrice: 3.50, total: 525.00 },
             { description: "Setup & Vector Art Digitization Fee", quantity: 1, unitPrice: 45.00, total: 45.00 }
         ],
