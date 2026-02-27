@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny ALL reads and writes unless explicitly authorized below
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Function to check if a user belongs to a specific shop
+    // Assuming users have a custom claim `shopId` or their user document contains their `shopId`
+    // Since custom claims aren't defined here, we check the user doc:
+    function belongsToShop(shopId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shopId == shopId;
+    }
+
+    // Users Collection: Users can read/write their own profiles
+    match /users/{userId} {
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || belongsToShop(resource.data.shopId));
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false; // Soft deletes preferred
+    }
+
+    // Shops Collection: Shop details
+    match /shops/{shopId} {
+      allow create: if isAuthenticated(); // Allowed during onboarding wizard
+      allow read: if belongsToShop(shopId);
+      allow update: if belongsToShop(shopId);
+      allow delete: if false;
+      
+      // Subcollections under a shop if structured this way
+      match /{collection}/{docId} {
+         allow read, write: if belongsToShop(shopId);
+      }
+    }
+
+    // Customers Collection (Flat structure referencing shopId)
+    match /customers/{customerId} {
+      allow create: if isAuthenticated() && request.resource.data.shopId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shopId;
+      allow read: if belongsToShop(resource.data.shopId);
+      allow update: if belongsToShop(resource.data.shopId);
+      allow delete: if belongsToShop(resource.data.shopId);
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      allow create: if isAuthenticated() && request.resource.data.shopId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shopId;
+      // Shop Authenticated Read/Write
+      allow read, update, delete: if belongsToShop(resource.data.shopId);
+      
+      // Guest Customer Portal Access - If you share a portal link, you may allow reads without auth using a secure secret or tracking token
+      // Currently locking down fully, add guest tokens if needed
+    }
+
+    // Artworks / Gangsheets
+    match /artworks/{artworkId} {
+      allow read, write: if belongsToShop(resource.data.shopId);
+    }
+    match /gangsheets/{gangsheetId} {
+      allow read, write: if belongsToShop(resource.data.shopId);
+    }
+
+  }
+}
