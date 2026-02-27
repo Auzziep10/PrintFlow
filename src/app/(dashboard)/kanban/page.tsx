@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 // Mock data: distinct phases of production
 const KANBAN_STAGES = [
@@ -23,6 +24,11 @@ const mockJobs = [
 export default function KanbanPage() {
     const [jobs, setJobs] = useState(mockJobs);
     const [draggedJob, setDraggedJob] = useState<string | null>(null);
+    const [selectedJob, setSelectedJob] = useState<string | null>(null);
+    const [auditLogs, setAuditLogs] = useState<{ id: string, jobId: string, timestamp: Date, user: string, action: string, detail: string }[]>([
+        { id: 'log1', jobId: 'ORD-001', timestamp: new Date(Date.now() - 86400000), user: 'System', action: 'Order Created', detail: 'Imported via API' },
+        { id: 'log2', jobId: 'ORD-001', timestamp: new Date(Date.now() - 3600000), user: 'Alex (Manager)', action: 'Moved Stage', detail: 'Moved to Pending Art' },
+    ]);
 
     const handleDragStart = (e: React.DragEvent, id: string) => {
         setDraggedJob(id);
@@ -37,9 +43,29 @@ export default function KanbanPage() {
         e.preventDefault();
         if (!draggedJob) return;
 
+        const targetJob = jobs.find(j => j.id === draggedJob);
+        if (!targetJob || targetJob.stage === stageId) {
+            setDraggedJob(null);
+            return;
+        }
+
+        const oldStageName = KANBAN_STAGES.find(s => s.id === targetJob.stage)?.title || 'Unknown';
+        const newStageName = KANBAN_STAGES.find(s => s.id === stageId)?.title || 'Unknown';
+
         setJobs(jobs.map(job =>
             job.id === draggedJob ? { ...job, stage: stageId } : job
         ));
+
+        // Append an Audit Log automatically
+        setAuditLogs(prev => [...prev, {
+            id: uuidv4(),
+            jobId: draggedJob,
+            timestamp: new Date(),
+            user: 'You (Admin)',
+            action: 'Changed Status',
+            detail: `Moved from ${oldStageName} to ${newStageName}`
+        }]);
+
         setDraggedJob(null);
     };
 
@@ -86,6 +112,7 @@ export default function KanbanPage() {
                                         key={job.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, job.id)}
+                                        onClick={() => setSelectedJob(job.id)}
                                         className="p-4 rounded-[1.5rem] bg-white/60 dark:bg-black/40 backdrop-blur-md border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing transition-all relative overflow-hidden group"
                                     >
                                         {/* Color Glow Overlay for specific cards based on current stage */}
@@ -95,7 +122,7 @@ export default function KanbanPage() {
                                             <span className="text-[10px] font-bold tracking-widest uppercase text-black/40 dark:text-white/40">{job.id}</span>
                                             <span className="text-xs font-medium text-black/40 dark:text-white/40">{job.date}</span>
                                         </div>
-                                        <h4 className="font-semibold text-sm text-black/90 dark:text-white/90 relative z-10">{job.title}</h4>
+                                        <h4 className="font-semibold text-sm text-black/90 dark:text-white/90 relative z-10 pointer-events-none">{job.title}</h4>
 
                                         <div className="mt-4 flex items-center justify-between relative z-10">
                                             <span className="text-xs font-bold text-black/50 dark:text-white/50 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-lg">{job.items} items</span>
@@ -116,6 +143,75 @@ export default function KanbanPage() {
                     );
                 })}
             </div>
+
+            {/* Job Details Drawer (Audit Log Focus) */}
+            {selectedJob && (() => {
+                const job = jobs.find(j => j.id === selectedJob);
+                const logs = auditLogs.filter(l => l.jobId === selectedJob).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+                if (!job) return null;
+
+                return (
+                    <div className="fixed inset-0 z-50 flex justify-end">
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setSelectedJob(null)}></div>
+                        <div className="w-full max-w-md bg-[var(--background)] h-full shadow-2xl relative z-10 flex flex-col border-l border-black/10 dark:border-white/10 animate-in slide-in-from-right duration-300">
+                            {/* Drawer Header */}
+                            <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
+                                <div>
+                                    <p className="text-[10px] font-bold tracking-widest uppercase text-black/40 dark:text-white/40 mb-1">{job.id}</p>
+                                    <h2 className="text-xl font-bold">{job.title}</h2>
+                                </div>
+                                <button onClick={() => setSelectedJob(null)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors rounded-full text-black/50 dark:text-white/50">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            {/* Drawer Content */}
+                            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 rounded-2xl glass-panel">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-black/40 dark:text-white/40 block mb-1">Status</span>
+                                        <span className="font-bold text-sm bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md">{KANBAN_STAGES.find(s => s.id === job.stage)?.title}</span>
+                                    </div>
+                                    <div className="p-4 rounded-2xl glass-panel">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-black/40 dark:text-white/40 block mb-1">Quantity</span>
+                                        <span className="font-bold text-sm bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md">{job.items}</span>
+                                    </div>
+                                </div>
+
+                                {/* Audit Log / History Feed */}
+                                <div>
+                                    <h3 className="text-sm font-bold tracking-widest uppercase text-black/40 dark:text-white/40 mb-4 border-b border-black/5 dark:border-white/5 pb-2">Activity Log & Audit Trail</h3>
+
+                                    {logs.length === 0 ? (
+                                        <p className="text-sm text-black/40 dark:text-white/40 text-center py-4">No audit logs available for this job.</p>
+                                    ) : (
+                                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-black/10 dark:before:via-white/10 before:to-transparent pt-2">
+                                            {logs.map((log, index) => (
+                                                <div key={log.id} className="relative flex items-start gap-4 p-4 rounded-2xl glass-panel bg-white/40 dark:bg-black/40 transition-shadow hover:shadow-md animate-in fade-in slide-in-from-bottom-2">
+                                                    <div className="absolute -left-1.5 top-5 w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_0_4px_var(--background)] z-10 hidden md:block"></div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-1 gap-2">
+                                                            <p className="text-xs font-bold truncate text-black dark:text-white">{log.action}</p>
+                                                            <time className="text-[10px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40 whitespace-nowrap shrink-0">{log.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &bull; {log.timestamp.toLocaleDateString()}</time>
+                                                        </div>
+                                                        <p className="text-sm text-black/70 dark:text-white/70 leading-snug mb-2">{log.detail}</p>
+                                                        <div className="flex items-center gap-1.5 mt-2">
+                                                            <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[8px] font-black uppercase">{log.user.charAt(0)}</div>
+                                                            <span className="text-[10px] font-bold text-black/40 dark:text-white/40">By {log.user}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }
