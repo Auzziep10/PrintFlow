@@ -16,6 +16,8 @@ interface ArtworkInstance {
     height: number;
     x: number;
     y: number;
+    intrinsicWidth: number;
+    intrinsicHeight: number;
 }
 
 export default function GangsheetBuilderApp() {
@@ -23,6 +25,9 @@ export default function GangsheetBuilderApp() {
     const [canvasHeightInches, setCanvasHeightInches] = useState(24); // Starting with 2ft min
     const [autoGapInches, setAutoGapInches] = useState(0.5); // Default half inch gap
     const canvasRef = useRef<HTMLDivElement>(null);
+    const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
+    const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
     // Dynamic Canvas Height Based on the longest placed item.
     useEffect(() => {
@@ -71,7 +76,9 @@ export default function GangsheetBuilderApp() {
                     width: dropWidthPx,
                     height: dropHeightPx,
                     x: 20, // Default drop near top left
-                    y: 20
+                    y: 20,
+                    intrinsicWidth: img.width,
+                    intrinsicHeight: img.height
                 }]);
             };
             img.src = url;
@@ -154,6 +161,46 @@ export default function GangsheetBuilderApp() {
                 x: Math.min(art.x, CANVAS_WIDTH_PX - newWidthPx)
             };
         }));
+    };
+
+    const validateAndCheckout = () => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (artworks.length === 0) {
+            errors.push("Your canvas is empty. Please add artwork.");
+        }
+
+        // Overlap checking
+        let hasOverlap = false;
+        for (let i = 0; i < artworks.length; i++) {
+            for (let j = i + 1; j < artworks.length; j++) {
+                const a = artworks[i];
+                const b = artworks[j];
+                if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y) {
+                    hasOverlap = true;
+                }
+            }
+        }
+        if (hasOverlap) {
+            warnings.push("Some images are visually overlapping. Please ensure nothing overlaps to prevent print issues.");
+        }
+
+        // DPI checking
+        let hasLowRes = false;
+        artworks.forEach(art => {
+            const renderedInches = art.width / CANVAS_PIXELS_PER_INCH;
+            const dpi = art.intrinsicWidth / renderedInches;
+            if (dpi < 200) hasLowRes = true;
+        });
+
+        if (hasLowRes) {
+            warnings.push("One or more scaled images have a low resolution (< 200 DPI). The print quality may be blurry or pixelated.");
+        }
+
+        setValidationErrors(errors);
+        setValidationWarnings(warnings);
+        setShowCheckoutModal(true);
     };
 
     return (
@@ -323,13 +370,76 @@ export default function GangsheetBuilderApp() {
                         </div>
                     </div>
 
-                    <button className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[15px] font-bold shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                        {/* Note: This button currently does nothing but placeholder UI */}
+                    <button onClick={validateAndCheckout} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[15px] font-bold shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
                         Submit Checkout
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
             </aside>
+
+            {/* Checkout Modal */}
+            {showCheckoutModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[var(--background)] max-w-lg w-full rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-8">
+                            <h2 className="text-2xl font-bold tracking-tight mb-2 text-black dark:text-white">Review & Checkout</h2>
+                            <p className="text-sm font-medium text-black/50 dark:text-white/50 mb-6">Confirm your gangsheet details before securely paying.</p>
+
+                            {validationErrors.length > 0 && (
+                                <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 mb-6">
+                                    <h3 className="text-red-700 dark:text-red-400 font-bold text-sm mb-2 flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        Cannot Proceed
+                                    </h3>
+                                    <ul className="list-disc pl-5 text-red-600 dark:text-red-400/80 text-sm space-y-1">
+                                        {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {validationErrors.length === 0 && validationWarnings.length > 0 && (
+                                <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl p-4 mb-6">
+                                    <h3 className="text-orange-700 dark:text-orange-400 font-bold text-sm mb-2 flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        Quality Warning
+                                    </h3>
+                                    <ul className="list-disc pl-5 text-orange-600 dark:text-orange-400/80 text-sm space-y-1">
+                                        {validationWarnings.map((warn, i) => <li key={i}>{warn}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {validationErrors.length === 0 && (
+                                <>
+                                    <div className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-6 mb-8">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-sm font-bold text-black/50 dark:text-white/50">Total Length</span>
+                                            <span className="text-sm font-bold text-black dark:text-white">{canvasHeightInches} Inches ({canvasHeightInches / 12} ft)</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <span className="text-sm font-bold text-black/50 dark:text-white/50">Total Graphics Validated</span>
+                                            <span className="text-sm font-bold text-black dark:text-white">{artworks.length} items</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-black/10 dark:border-white/10 pt-4">
+                                            <span className="text-lg font-bold text-black dark:text-white">Estimated Cost</span>
+                                            <span className="text-2xl font-black text-blue-600">
+                                                ${((canvasHeightInches / 12) * 4.50).toFixed(2)} {/* Mock price: $4.50 per linear foot */}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="p-6 bg-black/5 dark:bg-white/5 flex gap-4 justify-end border-t border-black/5 dark:border-white/5">
+                            <button onClick={() => setShowCheckoutModal(false)} className="px-6 py-2.5 rounded-xl font-bold text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors">Go Back</button>
+                            {validationErrors.length === 0 && (
+                                <button onClick={() => { alert("Redirecting to embedded Stripe checkout session..."); setShowCheckoutModal(false); }} className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md active:scale-95 transition-all">Proceed to Payment &rarr;</button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
