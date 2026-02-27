@@ -52,6 +52,42 @@ export default function GangsheetBuilderApp() {
         });
     }, [artworks]);
 
+    const repackCanvas = (currentArts: ArtworkInstance[], gapInches: number) => {
+        if (currentArts.length === 0) return [];
+        const gapPx = gapInches * CANVAS_PIXELS_PER_INCH;
+        const result: ArtworkInstance[] = [];
+
+        // Preserve the order of URLs as they currently appear
+        const urlOrder = Array.from(new Set(currentArts.map(a => a.url)));
+
+        let startX = 20;
+        let startY = 20;
+        let maxRowHeight = 0;
+
+        urlOrder.forEach(url => {
+            const groupArts = currentArts.filter(a => a.url === url);
+            groupArts.forEach(art => {
+                if (startX + art.width > CANVAS_WIDTH_PX && startX > 20) {
+                    startX = 20;
+                    startY += maxRowHeight + gapPx;
+                    maxRowHeight = 0;
+                }
+                result.push({ ...art, x: startX, y: startY });
+                startX += art.width + gapPx;
+                if (art.height > maxRowHeight) maxRowHeight = art.height;
+            });
+        });
+
+        return result;
+    };
+
+    // Auto-pack whenever the slider changes
+    useEffect(() => {
+        if (artworks.length > 0) {
+            setArtworks(prev => repackCanvas(prev, autoGapInches));
+        }
+    }, [autoGapInches]);
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -70,16 +106,16 @@ export default function GangsheetBuilderApp() {
                 const dropWidthPx = dropWidthInches * CANVAS_PIXELS_PER_INCH;
                 const dropHeightPx = dropWidthPx * ratio;
 
-                setArtworks(prev => [...prev, {
+                setArtworks(prev => repackCanvas([...prev, {
                     id: uuidv4(),
                     url: url,
                     width: dropWidthPx,
                     height: dropHeightPx,
-                    x: 20, // Default drop near top left
+                    x: 20,
                     y: 20,
                     intrinsicWidth: img.width,
                     intrinsicHeight: img.height
-                }]);
+                }], autoGapInches));
             };
             img.src = url;
         };
@@ -87,84 +123,68 @@ export default function GangsheetBuilderApp() {
     };
 
     const updateArtwork = (id: string, updates: Partial<ArtworkInstance>) => {
+        // We do *not* automatically repack on manual drag repositioning, leaving the user with some raw control, 
+        // though it will snap back if they change counts or gaps.
         setArtworks(prev => prev.map(art => art.id === id ? { ...art, ...updates } : art));
     };
 
     const removeArtwork = (id: string) => {
-        setArtworks(prev => prev.filter(art => art.id !== id));
+        setArtworks(prev => repackCanvas(prev.filter(art => art.id !== id), autoGapInches));
     };
 
     const removeGroup = (url: string) => {
         setArtworks(prev => prev.filter(art => art.url !== url));
     };
 
-    const duplicateArtwork = (art: ArtworkInstance) => {
-        const gapPx = autoGapInches * CANVAS_PIXELS_PER_INCH;
-        let nextX = art.x + art.width + gapPx;
-        let nextY = art.y;
+    const updateGroupCountLive = (url: string, newCount: number) => {
+        if (newCount < 1) return;
+        setArtworks(prev => {
+            const groupArts = prev.filter(a => a.url === url);
+            const otherArts = prev.filter(a => a.url !== url);
 
-        if (nextX + art.width > CANVAS_WIDTH_PX) {
-            nextX = 20;
-            nextY += art.height + gapPx;
-        }
-
-        setArtworks(prev => [...prev, {
-            ...art,
-            id: uuidv4(),
-            x: nextX,
-            y: nextY
-        }]);
-    };
-
-    const duplicateArtworkMultiple = (artToDuplicate: ArtworkInstance, count: number) => {
-        if (count <= 0) return;
-        const gapPx = autoGapInches * CANVAS_PIXELS_PER_INCH;
-        const newArtworks: ArtworkInstance[] = [];
-
-        let currentX = artToDuplicate.x + artToDuplicate.width + gapPx;
-        let currentY = artToDuplicate.y;
-
-        for (let i = 0; i < count; i++) {
-            if (currentX + artToDuplicate.width > CANVAS_WIDTH_PX) {
-                currentX = 20;
-                currentY += artToDuplicate.height + gapPx;
+            if (newCount > groupArts.length) {
+                const toAdd = newCount - groupArts.length;
+                const template = groupArts[0];
+                const newArts = Array(toAdd).fill(null).map(() => ({
+                    ...template,
+                    id: uuidv4()
+                }));
+                return repackCanvas([...prev, ...newArts], autoGapInches);
+            } else if (newCount < groupArts.length) {
+                const keep = groupArts.slice(0, newCount);
+                return repackCanvas([...otherArts, ...keep], autoGapInches);
             }
-            newArtworks.push({
-                ...artToDuplicate,
-                id: uuidv4(),
-                x: currentX,
-                y: currentY
-            });
-            currentX += artToDuplicate.width + gapPx;
-        }
-        setArtworks(prev => [...prev, ...newArtworks]);
+            return prev;
+        });
     };
 
     const handleExactResize = (url: string, newInches: number, dimension: 'width' | 'height') => {
         if (newInches <= 0 || isNaN(newInches)) return;
 
-        setArtworks(prev => prev.map(art => {
-            if (art.url !== url) return art;
+        setArtworks(prev => {
+            const updated = prev.map(art => {
+                if (art.url !== url) return art;
 
-            const currentRatio = art.width / art.height;
-            let newWidthPx, newHeightPx;
+                const currentRatio = art.width / art.height;
+                let newWidthPx, newHeightPx;
 
-            if (dimension === 'width') {
-                newWidthPx = newInches * CANVAS_PIXELS_PER_INCH;
-                newHeightPx = newWidthPx / currentRatio;
-            } else {
-                newHeightPx = newInches * CANVAS_PIXELS_PER_INCH;
-                newWidthPx = newHeightPx * currentRatio;
-            }
+                if (dimension === 'width') {
+                    newWidthPx = newInches * CANVAS_PIXELS_PER_INCH;
+                    newHeightPx = newWidthPx / currentRatio;
+                } else {
+                    newHeightPx = newInches * CANVAS_PIXELS_PER_INCH;
+                    newWidthPx = newHeightPx * currentRatio;
+                }
 
-            return {
-                ...art,
-                width: newWidthPx,
-                height: newHeightPx,
-                // Clamp position to not overflow right side when expanding
-                x: Math.min(art.x, CANVAS_WIDTH_PX - newWidthPx)
-            };
-        }));
+                return {
+                    ...art,
+                    width: newWidthPx,
+                    height: newHeightPx,
+                    x: Math.min(art.x, CANVAS_WIDTH_PX - newWidthPx)
+                };
+            });
+            return repackCanvas(updated, autoGapInches);
+        });
     };
 
     const validateAndCheckout = () => {
@@ -260,7 +280,7 @@ export default function GangsheetBuilderApp() {
                         >
                             {/* Hover Controls */}
                             <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/90 text-white p-1.5 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 pointer-events-none group-hover:pointer-events-auto">
-                                <button onClick={() => duplicateArtwork(art)} className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded-md transition-colors" title="Duplicate">
+                                <button onClick={() => updateGroupCountLive(art.url, (uniqueGraphics.find(g => g.url === art.url)?.count || 1) + 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded-md transition-colors" title="Duplicate">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                 </button>
                                 <button onClick={() => removeArtwork(art.id)} className="w-6 h-6 flex items-center justify-center hover:bg-red-500 text-red-400 hover:text-white rounded-md transition-colors" title="Delete">
@@ -357,16 +377,12 @@ export default function GangsheetBuilderApp() {
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 mt-1">
-                                    <span className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Add Copies</span>
-                                    <form onSubmit={(e) => {
-                                        e.preventDefault();
-                                        const input = e.currentTarget.elements.namedItem('copyCount') as HTMLInputElement;
-                                        duplicateArtworkMultiple(group, parseInt(input.value, 10));
-                                        input.value = '1';
-                                    }} className="flex items-center gap-1">
-                                        <input name="copyCount" type="number" defaultValue="1" min="1" max="100" className="w-12 h-6 text-xs font-bold text-center bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded" />
-                                        <button type="submit" className="h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold rounded uppercase tracking-wider transition-colors">Add</button>
-                                    </form>
+                                    <span className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">Total Copies</span>
+                                    <div className="flex items-center bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded shadow-sm">
+                                        <button onClick={() => updateGroupCountLive(group.url, group.count - 1)} className="w-6 h-6 flex items-center justify-center text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors font-bold">&minus;</button>
+                                        <div className="w-10 h-6 flex items-center justify-center text-xs font-bold text-black dark:text-white border-x border-black/5 dark:border-white/5">{group.count}</div>
+                                        <button onClick={() => updateGroupCountLive(group.url, group.count + 1)} className="w-6 h-6 flex items-center justify-center text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors font-bold">+</button>
+                                    </div>
                                 </div>
                             </div>
                         ))
