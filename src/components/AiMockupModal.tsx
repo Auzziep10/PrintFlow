@@ -11,7 +11,11 @@ export default function AiMockupModal({
     onClose: () => void;
     onSave: (url: string) => void;
 }) {
-    const [prompt, setPrompt] = useState('A photorealistic model wearing an orange hoodie in a minimalist bright studio.');
+    const [garment, setGarment] = useState('t-shirt');
+    const [color, setColor] = useState('black');
+    const [model, setModel] = useState('male model');
+    const [setting, setSetting] = useState('minimalist bright studio');
+    const [additionalDetails, setAdditionalDetails] = useState('');
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState('');
@@ -30,11 +34,15 @@ export default function AiMockupModal({
     };
 
     const handleGenerate = async () => {
-        if (!prompt) return;
         setIsGenerating(true);
         setError('');
 
         try {
+            const finalPrompt = (model === 'Flatlay (No Model)'
+                ? `A photorealistic flatlay of a ${color} ${garment} evenly lit, directly from above, in a ${setting}.`
+                : `A photorealistic cinematic portrait of a ${model} wearing a ${color} ${garment} in a ${setting}.`)
+                + (additionalDetails ? ` Additional details: ${additionalDetails}` : '');
+
             // Strip the data:image prefix if present, otherwise API might break
             const logoBase64 = logoPreview ? logoPreview.split(',')[1] : undefined;
 
@@ -42,7 +50,7 @@ export default function AiMockupModal({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: prompt,
+                    prompt: finalPrompt,
                     logoBase64: logoBase64
                 })
             });
@@ -77,15 +85,62 @@ export default function AiMockupModal({
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6">
-                    {/* Prompt input */}
-                    <div className="flex-1 flex flex-col gap-2 relative z-10">
-                        <label className="text-xs font-bold uppercase tracking-wider text-black/60 dark:text-white/60">Scene Prompt</label>
-                        <textarea
-                            value={prompt}
-                            onChange={e => setPrompt(e.target.value)}
-                            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none h-32"
-                            placeholder="e.g. A female model wearing an orange hoodie in an urban environment..."
-                        />
+                    {/* Configuration Form */}
+                    <div className="flex-1 flex flex-col gap-4 relative z-10">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Garment Type</label>
+                                <select value={garment} onChange={e => setGarment(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500/50 cursor-pointer">
+                                    <option value="t-shirt">T-Shirt</option>
+                                    <option value="pullover hoodie">Pullover Hoodie</option>
+                                    <option value="crewneck sweatshirt">Crewneck Sweatshirt</option>
+                                    <option value="long sleeve tee">Long Sleeve Tee</option>
+                                    <option value="tank top">Tank Top</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Garment Color</label>
+                                <select value={color} onChange={e => setColor(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500/50 cursor-pointer">
+                                    <option value="black">Black</option>
+                                    <option value="white">White</option>
+                                    <option value="heather grey">Heather Grey</option>
+                                    <option value="navy blue">Navy Blue</option>
+                                    <option value="dark red">Dark Red</option>
+                                    <option value="forest green">Forest Green</option>
+                                    <option value="sand or khaki">Sand / Khaki</option>
+                                    <option value="baby pink">Baby Pink</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Model Style</label>
+                                <select value={model} onChange={e => setModel(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500/50 cursor-pointer">
+                                    <option value="male model">Male Model</option>
+                                    <option value="female model">Female Model</option>
+                                    <option value="androgynous model">Unisex (Androgynous)</option>
+                                    <option value="Flatlay (No Model)">Flat Lay (No Model)</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Environment</label>
+                                <select value={setting} onChange={e => setSetting(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500/50 cursor-pointer">
+                                    <option value="minimalist bright studio">Studio (White/Grey)</option>
+                                    <option value="urban street alley with graffiti">Urban Street / Graffiti</option>
+                                    <option value="cozy coffee shop with warm lighting">Warm Coffee Shop</option>
+                                    <option value="sunlit nature scenery">Sunlit Nature Scenery</option>
+                                    <option value="modern gym with neon lights">Modern Gym / Neon</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-black/50 dark:text-white/50">Additional Details (Optional)</label>
+                            <textarea
+                                value={additionalDetails}
+                                onChange={e => setAdditionalDetails(e.target.value)}
+                                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none h-16"
+                                placeholder="e.g. Model wearing sunglasses, holding a skateboard..."
+                            />
+                        </div>
                     </div>
 
                     {/* Optional Logo Reference */}
@@ -128,7 +183,7 @@ export default function AiMockupModal({
                     </button>
                     <button
                         onClick={handleGenerate}
-                        disabled={!prompt || isGenerating}
+                        disabled={isGenerating}
                         className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
                     >
                         {isGenerating ? (
