@@ -10,7 +10,7 @@ const MOCK_TEAM = [
 ];
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments' | 'billing'>('billing');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments' | 'billing' | 'invoices'>('invoices');
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
 
@@ -85,6 +85,12 @@ export default function SettingsPage() {
                     >
                         Billing & Plans
                     </button>
+                    <button
+                        onClick={() => setActiveTab('invoices')}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
+                    >
+                        Invoices
+                    </button>
                 </div>
             </header>
 
@@ -92,8 +98,60 @@ export default function SettingsPage() {
                 {/* Subtle decorative glow */}
                 <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl -ml-48 -mt-48 pointer-events-none"></div>
 
+                {activeTab === 'invoices' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl relative z-10 w-full">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight mb-2">Invoice Customization</h2>
+                            <p className="text-sm font-medium text-black/60 dark:text-white/60">Configure how your quotes and invoices look when sent to your customers.</p>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2">Brand Accent Color</label>
+                                    <div className="flex bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 p-2 rounded-2xl items-center gap-4">
+                                        <input type="color" defaultValue="#635bff" className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-none appearance-none p-0 outline-none" />
+                                        <div className="font-mono text-sm font-bold text-black/70 dark:text-white/70">#635BFF</div>
+                                    </div>
+                                    <p className="text-[10px] text-black/40 dark:text-white/40 mt-1">Used for line-item highlights and the Pay button</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2">Shop Logo</label>
+                                    <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 text-black/80 dark:text-white/80 rounded-2xl text-sm font-bold transition-all shadow-sm">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                        Upload Image
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr className="border-black/5 dark:border-white/5" />
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2">Default Terms & Conditions</label>
+                                <textarea
+                                    className="w-full px-4 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium min-h-[120px]"
+                                    defaultValue="All sales are final once artwork has been approved. Payment is due upon receipt. Unpaid invoices subject to a 5% late fee per month."
+                                />
+                                <p className="text-[10px] text-black/40 dark:text-white/40 mt-1">This text automatically appears at the bottom of all generated PDFs.</p>
+                            </div>
+
+                            <div className="glass-panel p-5 rounded-2xl border border-black/5 dark:border-white/5 flex items-center justify-between gap-4">
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-black/90 dark:text-white/90">Show Spreadsheet-Style Size Spread</span>
+                                    <span className="text-xs text-black/50 dark:text-white/50 font-medium">Instead of a single line item, break down garments into a matrix of sizes (S, M, L, XL, etc).</span>
+                                </div>
+                                <div className="min-w-[48px] h-6 bg-blue-500 rounded-full flex items-center shrink-0 cursor-pointer p-1">
+                                    <div className="w-4 h-4 bg-white rounded-full translate-x-6 shadow-sm pointer-events-none"></div>
+                                </div>
+                            </div>
+
+                            <button className="mt-8 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-bold shadow-md hover:bg-black/80 dark:hover:bg-white/80 transition-all">Save Invoice Preferences</button>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'profile' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl relative z-10">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl relative z-10 w-full">
                         <h2 className="text-xl font-bold tracking-tight mb-6">General Information</h2>
 
                         <div className="space-y-6">
