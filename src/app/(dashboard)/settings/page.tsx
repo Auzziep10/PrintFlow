@@ -10,7 +10,7 @@ const MOCK_TEAM = [
 ];
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments' | 'billing' | 'invoices'>('invoices');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'payments' | 'billing' | 'invoices' | 'webhooks'>('invoices');
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
 
@@ -90,6 +90,12 @@ export default function SettingsPage() {
                         className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
                     >
                         Invoices
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('webhooks')}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'webhooks' ? 'bg-white dark:bg-black shadow-sm text-blue-600 dark:text-blue-400' : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'}`}
+                    >
+                        Webhooks & API
                     </button>
                 </div>
             </header>
@@ -335,6 +341,84 @@ export default function SettingsPage() {
                                 </button>
                             </div>
 
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'webhooks' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl relative z-10 w-full">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold tracking-tight mb-2">Webhooks & Notifications</h2>
+                            <p className="text-sm font-medium text-black/60 dark:text-white/60">Connect Printflow to your other tools (Zapier, custom servers) securely by triggering POST payloads on status updates.</p>
+                        </div>
+
+                        <div className="space-y-8">
+                            <div>
+                                <h3 className="text-lg font-bold text-black/90 dark:text-white/90 mb-4 tracking-tight">Email Notifications</h3>
+                                <div className="border border-black/10 dark:border-white/10 rounded-2xl overflow-hidden glass-panel">
+                                    <label className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                        <div>
+                                            <span className="font-bold text-sm block">Customer Status Updates</span>
+                                            <span className="text-xs text-black/50 dark:text-white/50">Automatically email clients when their job moves to "In Production" or "Shipped".</span>
+                                        </div>
+                                        <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-black/20 text-blue-600 focus:ring-blue-500 accent-blue-600" />
+                                    </label>
+                                    <div className="h-px bg-black/10 dark:bg-white/10 w-full"></div>
+                                    <label className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                        <div>
+                                            <span className="font-bold text-sm block">Internal Team Alerts</span>
+                                            <span className="text-xs text-black/50 dark:text-white/50">Notify staff managers when a new quote is requested or approved.</span>
+                                        </div>
+                                        <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-black/20 text-blue-600 focus:ring-blue-500 accent-blue-600" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold text-black/90 dark:text-white/90 tracking-tight">Endpoint Configuration</h3>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#635BFF] bg-[#635BFF]/10 px-2 py-1 rounded-md">Beta</span>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2 block">Payload URL</label>
+                                        <input type="url" placeholder="https://api.yourdomain.com/webhooks/printflow" className="w-full text-sm font-mono px-4 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-black/30 dark:placeholder:text-white/30" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2 block">Secret Token (Optional)</label>
+                                        <div className="relative">
+                                            <input type="password" defaultValue="printflow_sec_99asd8f7sa9df" className="w-full text-sm font-mono px-4 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all" />
+                                            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-black/50 dark:text-white/50 mb-2 block">Events to trigger on:</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/5 cursor-pointer text-sm font-bold text-purple-700 dark:text-purple-300 transition-colors hover:bg-purple-500/10">
+                                                <input type="checkbox" defaultChecked className="accent-purple-600 rounded-sm" /> Job Stage Changed
+                                            </label>
+                                            <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 glass-panel cursor-pointer text-sm font-bold text-black/70 dark:text-white/70 transition-colors hover:border-black/20 dark:hover:border-white/20">
+                                                <input type="checkbox" className="accent-black dark:accent-white rounded-sm" /> Order Created
+                                            </label>
+                                            <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 glass-panel cursor-pointer text-sm font-bold text-black/70 dark:text-white/70 transition-colors hover:border-black/20 dark:hover:border-white/20">
+                                                <input type="checkbox" className="accent-black dark:accent-white rounded-sm" /> Artwork Uploaded
+                                            </label>
+                                            <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 glass-panel cursor-pointer text-sm font-bold text-black/70 dark:text-white/70 transition-colors hover:border-black/20 dark:hover:border-white/20">
+                                                <input type="checkbox" className="accent-black dark:accent-white rounded-sm" /> Client Approval Signed
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 flex items-center justify-between glass-panel p-4 rounded-2xl border border-black/5 dark:border-white/5">
+                                        <button className="px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-bold shadow-sm hover:scale-105 active:scale-95 transition-all">Save Webhook</button>
+                                        <button className="text-sm font-bold text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors">Test Ping &rarr;</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
