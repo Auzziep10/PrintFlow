@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import React from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar({ className }: { className?: string }) {
+  const { user } = useAuth();
   return (
     <aside className={className}>
       <div className="p-6">
@@ -42,7 +46,18 @@ export default function Sidebar({ className }: { className?: string }) {
           <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 rounded-full blur-xl -mr-8 -mt-8"></div>
           <p className="text-xs font-semibold text-black/80 dark:text-white/80 mb-1 relative z-10">Embedded App</p>
           <p className="text-[10px] text-black/50 dark:text-white/50 mb-3 leading-relaxed relative z-10">Empower customers with a DTF Gangsheet Builder on your site.</p>
-          <button className="w-full py-2 px-3 text-xs font-semibold rounded-xl text-white bg-black/90 dark:bg-white/20 hover:bg-black transition-all backdrop-blur-md shadow-md active:scale-95 relative z-10">Configure Widget</button>
+          <div className="flex flex-col gap-2 relative z-10">
+            <button className="w-full py-2 px-3 text-xs font-semibold rounded-xl text-white bg-black/90 dark:bg-white/20 hover:bg-black transition-all backdrop-blur-md shadow-md active:scale-95">Configure Widget</button>
+            {user?.uid && (
+              <Link
+                href={`/gangsheet/${user.uid}`}
+                target="_blank"
+                className="w-full py-2 px-3 text-xs font-semibold rounded-xl text-black bg-white dark:text-white dark:bg-black/40 border border-black/10 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-black/60 transition-all text-center backdrop-blur-md shadow-sm active:scale-95"
+              >
+                Preview Builder
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </aside>
